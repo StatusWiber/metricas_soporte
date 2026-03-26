@@ -6,8 +6,28 @@ import GraficosRealtime from '../components/GraficosRealtime';
 import DesviosTable from '../components/DesviosTable';
 import AlertasPanel from '../components/AlertasPanel';
 import OperadorCard from '../components/OperadorCard';
-import useMetricas from '../hooks/useMetricas';
-import { getDesvios } from '../services/api';
+
+// Mock data for testing without backend
+const MOCK_METRICAS = {
+  fecha: new Date().toISOString().split('T')[0],
+  mttr_real_minutos: 4.5,
+  mttr_esperado_minutos: 4.2,
+  desvio_general_porcentaje: 7.1,
+  total_interacciones: 68,
+  operadores: [
+    { operador_id: 'OPE-CRISTIAN', nombre: 'CRISTIAN', capacidad: 'NORMAL', desvio_promedio: 5.2, interacciones_hoy: 18, alertas_count: 0, mttr_real_minutos: 4.3 },
+    { operador_id: 'OPE-ROCIO', nombre: 'ROCIO', capacidad: 'SATURADO', desvio_promedio: 22.5, interacciones_hoy: 15, alertas_count: 1, mttr_real_minutos: 5.1 },
+    { operador_id: 'OPE-NICOLAS', nombre: 'NICOLÁS', capacidad: 'NORMAL', desvio_promedio: -8.3, interacciones_hoy: 20, alertas_count: 0, mttr_real_minutos: 3.9 },
+    { operador_id: 'OPE-GUSTAVO', nombre: 'GUSTAVO', capacidad: 'CAPACIDAD LIBRE', desvio_promedio: -18.5, interacciones_hoy: 15, alertas_count: 0, mttr_real_minutos: 3.4 },
+  ],
+  interacciones_por_tipo: [
+    { tipo: 'SIN INTERNET', cantidad: 22, mttr_real: 3.8, mttr_esperado: 3.83, desvio_porcentaje: -0.8 },
+    { tipo: 'CONSULTAS ADICIONALES', cantidad: 18, mttr_real: 3.5, mttr_esperado: 3.73, desvio_porcentaje: -6.2 },
+    { tipo: 'TV', cantidad: 15, mttr_real: 5.2, mttr_esperado: 4.35, desvio_porcentaje: 19.5 },
+    { tipo: 'INTERMITENCIAS / LENTITUD', cantidad: 10, mttr_real: 5.8, mttr_esperado: 5.22, desvio_porcentaje: 11.1 },
+    { tipo: 'DERIVACIÓN DE CHAT', cantidad: 3, mttr_real: 0.7, mttr_esperado: 0.67, desvio_porcentaje: 4.5 },
+  ]
+};
 
 /**
  * Home / Dashboard Page
@@ -15,28 +35,13 @@ import { getDesvios } from '../services/api';
 export const Home = () => {
   const navigate = useNavigate();
   const [fecha, setFecha] = useState(null);
-  const [desvios, setDesvios] = useState([]);
-  const [desviosLoading, setDesviosLoading] = useState(false);
+  const [metricas] = useState(MOCK_METRICAS);
+  const metricsLoading = false;
+  const metricsError = null;
+  const desvios = [];
+  const desviosLoading = false;
 
-  const { metricas, loading: metricsLoading, error: metricsError } = useMetricas(fecha);
-
-  // Fetch deviations when metrics change
-  React.useEffect(() => {
-    const fetchDesvios = async () => {
-      if (!metricas) return;
-      try {
-        setDesviosLoading(true);
-        const response = await getDesvios(null, fecha, null);
-        setDesvios(response.data.desvios || []);
-      } catch (err) {
-        console.error('Error fetching deviations:', err);
-        setDesvios([]);
-      } finally {
-        setDesviosLoading(false);
-      }
-    };
-    fetchDesvios();
-  }, [metricas, fecha]);
+  // Removed useEffect - using mock data instead
 
   const handleOperadorClick = (operadorId) => {
     navigate(`/operador/${operadorId}`, { state: { fecha } });
