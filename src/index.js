@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import gestionesRouter from './routes/gestiones.js';
 import desviosRouter from './routes/desvios.js';
 import webhooksRouter from './routes/webhooks.js';
-import { errorHandler } from './middleware/errorHandler.js';
+import { errorHandler, requireDb } from './middleware/errorHandler.js';
 
 // Load environment variables
 dotenv.config();
@@ -39,13 +39,14 @@ app.get('/api/health', (req, res) => {
     status: 'OK',
     timestamp: new Date().toISOString(),
     service: 'Wiber Metrics',
+    database: process.env.DATABASE_URL ? 'configured' : 'not configured',
   });
 });
 
-// Routes
-app.use('/api/gestiones', gestionesRouter);
-app.use('/api/desvios', desviosRouter);
-app.use('/api/webhooks', webhooksRouter);
+// Routes (require DB to be configured)
+app.use('/api/gestiones', requireDb, gestionesRouter);
+app.use('/api/desvios', requireDb, desviosRouter);
+app.use('/api/webhooks', requireDb, webhooksRouter);
 
 // 404 Handler
 app.use((req, res) => {

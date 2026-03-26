@@ -3,6 +3,17 @@ export const asyncHandler = (fn) => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(next);
 };
 
+// Middleware to guard routes that require database
+export const requireDb = (req, res, next) => {
+  if (!process.env.DATABASE_URL) {
+    return res.status(503).json({
+      error: 'Database not configured',
+      message: 'DATABASE_URL environment variable is not set. Please configure Supabase.',
+    });
+  }
+  next();
+};
+
 // Global error handler middleware
 export const errorHandler = (err, req, res, next) => {
   console.error(`[ERROR] ${req.method} ${req.path}:`, err);
