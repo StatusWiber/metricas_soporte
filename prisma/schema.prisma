@@ -1,0 +1,102 @@
+// Wiber Metrics - Prisma Schema
+// Database: PostgreSQL (Supabase)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Reference table for interaction types with expected averages
+model TipoInteraccion {
+  id                 Int                  @id @default(autoincrement())
+  nombre             String               @unique
+  promedio_minutos   Float
+  created_at         DateTime             @default(now())
+
+  gestiones          Gestion[]
+  desvios            Desvio[]
+  referencias        ReferenciaTiempos[]
+}
+
+// Operator (support agent)
+model Operador {
+  id         String    @id // e.g. "OPE-CRISTIAN"
+  nombre     String
+  email      String?
+  created_at DateTime  @default(now())
+
+  gestiones  Gestion[]
+  desvios    Desvio[]
+  alertas    Alerta[]
+}
+
+// Core table - all interactions from any source
+model Gestion {
+  id                   String          @id @default(cuid())
+  source               String          // "typeform" | "suricata" | "anatod"
+  source_id            String          // unique ID from the original source
+  operador_id          String
+  tipo_interaccion_id  Int
+  timestamp_inicio     DateTime
+  timestamp_fin        DateTime?
+  duracion_segundos    Int?
+  duracion_minutos     Float?          // calculated: duracion_segundos / 60
+  estado               String          // "abierto" | "cerrado" | "derivado"
+  metadata             Json?           // extra data from each source
+  created_at           DateTime        @default(now())
+  updated_at           DateTime        @updatedAt
+
+  operador             Operador        @relation(fields: [operador_id], references: [id])
+  tipo_interaccion     TipoInteraccion @relation(fields: [tipo_interaccion_id], references: [id])
+  desvios              Desvio[]
+  alertas              Alerta[]
+
+  @@unique([source, source_id]) // prevent duplicate imports from same source
+}
+
+// Deviation record - calculated after each interaction closes
+model Desvio {
+  id                        String          @id @default(cuid())
+  gestion_id                String
+  operador_id               String
+  tipo_interaccion_id       Int
+  promedio_esperado_minutos Float
+  duracion_real_minutos     Float
+  desvio_porcentaje         Float           // e.g. +15.3 or -8.2
+  estado_alerta             String          // "normal" | "lento" | "rapido"
+  fecha                     DateTime
+  created_at                DateTime        @default(now())
+
+  gestion          Gestion         @relation(fields: [gestion_id], references: [id])
+  operador         Operador        @relation(fields: [operador_id], references: [id])
+  tipo_interaccion TipoInteraccion @relation(fields: [tipo_interaccion_id], references: [id])
+}
+
+// Alert generated when deviation exceeds threshold
+model Alerta {
+  id          String   @id @default(cuid())
+  gestion_id  String
+  operador_id String
+  tipo_alerta String   // "desvio_alto" | "capacidad_saturada" | "anomalia"
+  mensaje     String
+  leida       Boolean  @default(false)
+  created_at  DateTime @default(now())
+
+  gestion  Gestion  @relation(fields: [gestion_id], references: [id])
+  operador Operador @relation(fields: [operador_id], references: [id])
+}
+
+// Reference table for expected times per interaction type
+model ReferenciaTiempos {
+  id                   String          @id @default(cuid())
+  tipo_interaccion_id  Int
+  promedio_minutos     Float           // MTTR expected from reference sheet
+  cantidad_muestras    Int             // number of data points used to calculate
+  fecha_actualizacion  DateTime        @updatedAt
+
+  tipo_interaccion TipoInteraccion @relation(fields: [tipo_interaccion_id], references: [id])
+}

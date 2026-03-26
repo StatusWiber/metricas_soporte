@@ -1,117 +1,132 @@
 # Wiber Metrics - Performance Measurement System
 
-System for measuring and tracking performance metrics across multiple data sources.
+Automated system for measuring and tracking support team performance at Wiber ISP (Mendoza, Argentina).
+
+## Team
+- CRISTIAN, ROCIO, NICOLÁS, GUSTAVO, FEDE
+
+## Data Sources
+| Source | Description |
+|--------|-------------|
+| Typeform | Real-time interaction timer (webhook) |
+| Suricata | Ticket management system (Phase 2) |
+| Anatod | Unified records system (Phase 2) |
 
 ## Tech Stack
-
 - **Runtime:** Node.js LTS
 - **Framework:** Express.js
-- **Database:** Supabase (PostgreSQL)
+- **Database:** Supabase (PostgreSQL cloud)
 - **ORM:** Prisma
-- **Operating System:** Linux (Ubuntu)
 
-## Prerequisites
+## Project Structure
+```
+src/
+├── routes/
+│   ├── gestiones.js    # Interaction CRUD + metrics endpoints
+│   ├── desvios.js      # Deviation endpoints
+│   └── webhooks.js     # Typeform webhook receiver
+├── services/
+│   ├── gestionService.js     # Business logic: create, query, metrics
+│   └── calculoDesvios.js     # Deviation calculation engine
+├── middleware/
+│   └── errorHandler.js       # Global error handler + async wrapper
+├── utils/
+│   └── validators.js         # Input validators and helpers
+├── config/
+│   └── db.js                 # Prisma client singleton
+└── index.js                  # App entry point
 
-- Node.js LTS (v18 or higher)
-- npm or yarn
-- Supabase account (for DATABASE_URL)
-- API Keys for integrations (Typeform, Suricata, ANATOD)
+prisma/
+├── schema.prisma   # Database schema
+└── seed.js         # Initial data (operators + interaction types)
+```
 
-## Installation
+## Setup
 
-1. Clone the repository:
+### 1. Clone and install
 ```bash
 git clone https://github.com/StatusWiber/metricas_soporte.git
 cd metricas_soporte
-```
-
-2. Install dependencies:
-```bash
 npm install
 ```
 
-3. Configure environment variables:
+### 2. Configure environment
 ```bash
 cp .env.example .env
 ```
+Fill in your Supabase `DATABASE_URL` and API keys.
 
-Edit the `.env` file with your credentials:
-- `DATABASE_URL`: Your Supabase connection string
-- `TYPEFORM_API_TOKEN`: Your Typeform API token
-- `SURICATA_API_KEY` and `SURICATA_API_URL`: Suricata integration
-- `ANATOD_API_KEY` and `ANATOD_API_URL`: ANATOD integration
+### 3. Initialize database
+```bash
+npm run prisma:generate        # Generate Prisma client
+npx prisma migrate dev --name initial   # Create tables in Supabase
+npm run prisma:seed            # Load operators and interaction types
+```
 
-## Running the Project
-
-### Development Mode
+### 4. Run development server
 ```bash
 npm run dev
-```
-
-This will start the server with nodemon for automatic reloading on file changes.
-
-### Production Mode
-```bash
-npm start
-```
-
-### Database
-
-Initialize Prisma and run migrations:
-```bash
-npm run prisma:generate
-npm run prisma:migrate
+# Server running on http://localhost:3000
 ```
 
 ## API Endpoints
 
-- `GET /api/health` - Health check endpoint
-- `GET /api/gestiones` - Management endpoints (to be implemented)
-- `GET /api/desvios` - Deviations endpoints (to be implemented)
-- `POST /api/webhooks` - Webhook endpoints (to be implemented)
+### Health
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/health` | Server status |
 
-## Project Structure
+### Gestiones (Interactions)
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/gestiones` | List all (filters: operador_id, fecha_desde, fecha_hasta) |
+| GET | `/api/gestiones/:id` | Single interaction with deviation |
+| GET | `/api/gestiones/operador/:id` | Operator's interactions (filter: fecha) |
+| GET | `/api/gestiones/capacidad/:id` | Operator capacity status |
+| GET | `/api/gestiones/metricas/equipo` | Full team metrics (filter: fecha) |
 
-```
-src/
-├── routes/          # API route handlers
-├── models/          # Data models and types
-├── services/        # Business logic
-├── utils/           # Utility functions
-├── middleware/      # Custom middleware
-├── config/          # Configuration files
-└── index.js         # Application entry point
+### Desvíos (Deviations)
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/desvios` | List deviations (filters: operador_id, fecha_desde, fecha_hasta, alerta_solo) |
+| GET | `/api/desvios/operador/:id` | Operator deviations (filters: fecha, tipo_interaccion_id) |
 
-prisma/
-├── schema.prisma    # Database schema
-└── migrations/      # Database migrations
+### Webhooks
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/webhooks/typeform` | Receive Typeform form submission |
 
-public/              # Static files
-```
+## Typeform Webhook Setup
 
-## Environment Variables
+1. In Typeform, go to your form → **Connect → Webhooks**
+2. Add webhook URL: `https://your-domain.vercel.app/api/webhooks/typeform`
+3. Expected answer order in form:
+   - Answer 1 (short_text): Operator name (e.g. `CRISTIAN`)
+   - Answer 2 (short_text): Interaction type (e.g. `SIN INTERNET`)
+   - Answer 3 (date): Date
+   - Answer 4 (number): Duration in seconds
 
-Required environment variables:
-- `DATABASE_URL` - Supabase PostgreSQL connection string
-- `TYPEFORM_API_TOKEN` - Typeform API authentication token
-- `SURICATA_API_KEY` - Suricata API key
-- `SURICATA_API_URL` - Suricata API endpoint URL
-- `ANATOD_API_KEY` - ANATOD API key
-- `ANATOD_API_URL` - ANATOD API endpoint URL
-- `PORT` - Server port (default: 3000)
-- `NODE_ENV` - Environment (development/production)
+## Interaction Types (Reference MTTR)
+| Type | Expected Average |
+|------|-----------------|
+| CONSULTAS ADICIONALES | 3.73 min |
+| TV | 4.35 min |
+| SIN INTERNET | 3.83 min |
+| INTERMITENCIAS / LENTITUD | 5.22 min |
+| DERIVACIÓN DE CHAT | 0.67 min |
 
-## Development Notes
+## Deviation Logic
+- `desvio% = (real - expected) / expected * 100`
+- `|desvio%| ≤ 20%` → **NORMAL**
+- `desvio% > +20%` → **LENTO** (alert generated)
+- `desvio% < -20%` → **RAPIDO** (alert generated)
 
-- No local PostgreSQL installation needed (using Supabase cloud)
-- Authentication will be configured in future phases
-- All code should be written in English
-- Follow the existing folder structure for new features
+## Capacity Status
+- `avg_desvio% < -15%` → **CAPACIDAD LIBRE** (operator is faster than usual)
+- `avg_desvio% > +15%` → **SATURADO** (operator is slower than usual)
+- `-15% ≤ avg_desvio% ≤ +15%` → **NORMAL**
 
-## License
-
-MIT
-
-## Contact
-
-Wiber Team
+## Roadmap
+- **Phase 1 (current):** Typeform integration, deviation calculation, alerts
+- **Phase 2:** Suricata + Anatod integration, Sentry logging
+- **Phase 3:** Dashboard UI, authentication, reports

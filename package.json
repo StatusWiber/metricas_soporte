@@ -9,7 +9,11 @@
     "start": "node src/index.js",
     "build": "prisma generate",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev"
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:seed": "node prisma/seed.js"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
   },
   "keywords": ["metrics", "performance", "wiber"],
   "author": "Wiber Team",

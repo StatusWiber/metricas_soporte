@@ -1,9 +1,10 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import gestionsRouter from './routes/gestiones.js';
+import gestionesRouter from './routes/gestiones.js';
 import desviosRouter from './routes/desvios.js';
 import webhooksRouter from './routes/webhooks.js';
+import { errorHandler } from './middleware/errorHandler.js';
 
 // Load environment variables
 dotenv.config();
@@ -25,9 +26,10 @@ app.get('/', (req, res) => {
       health: '/api/health',
       gestiones: '/api/gestiones',
       desvios: '/api/desvios',
-      webhooks: '/api/webhooks'
+      webhooks: '/api/webhooks',
+      metricas_equipo: '/api/gestiones/metricas/equipo',
     },
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 });
 
@@ -36,12 +38,12 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({
     status: 'OK',
     timestamp: new Date().toISOString(),
-    service: 'Wiber Metrics'
+    service: 'Wiber Metrics',
   });
 });
 
 // Routes
-app.use('/api/gestiones', gestionsRouter);
+app.use('/api/gestiones', gestionesRouter);
 app.use('/api/desvios', desviosRouter);
 app.use('/api/webhooks', webhooksRouter);
 
@@ -49,18 +51,12 @@ app.use('/api/webhooks', webhooksRouter);
 app.use((req, res) => {
   res.status(404).json({
     error: 'Route not found',
-    path: req.path
+    path: req.path,
   });
 });
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error('Error:', err);
-  res.status(err.status || 500).json({
-    error: err.message || 'Internal Server Error',
-    status: err.status || 500
-  });
-});
+// Global error handler
+app.use(errorHandler);
 
 // Start server only in development
 if (process.env.NODE_ENV !== 'production') {
