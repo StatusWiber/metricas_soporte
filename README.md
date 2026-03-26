@@ -1,132 +1,214 @@
-# Wiber Metrics - Performance Measurement System
+# Wiber Metrics - Sistema Web Centralizado de Medición de Rendimiento
 
-Automated system for measuring and tracking support team performance at Wiber ISP (Mendoza, Argentina).
+Sistema completo para medir y monitorear el rendimiento del equipo de soporte técnico en Wiber (ISP Mendoza).
 
-## Team
-- CRISTIAN, ROCIO, NICOLÁS, GUSTAVO, FEDE
+## 🏗️ Estructura del Proyecto
 
-## Data Sources
-| Source | Description |
-|--------|-------------|
-| Typeform | Real-time interaction timer (webhook) |
-| Suricata | Ticket management system (Phase 2) |
-| Anatod | Unified records system (Phase 2) |
-
-## Tech Stack
-- **Runtime:** Node.js LTS
-- **Framework:** Express.js
-- **Database:** Supabase (PostgreSQL cloud)
-- **ORM:** Prisma
-
-## Project Structure
 ```
-src/
-├── routes/
-│   ├── gestiones.js    # Interaction CRUD + metrics endpoints
-│   ├── desvios.js      # Deviation endpoints
-│   └── webhooks.js     # Typeform webhook receiver
-├── services/
-│   ├── gestionService.js     # Business logic: create, query, metrics
-│   └── calculoDesvios.js     # Deviation calculation engine
-├── middleware/
-│   └── errorHandler.js       # Global error handler + async wrapper
-├── utils/
-│   └── validators.js         # Input validators and helpers
-├── config/
-│   └── db.js                 # Prisma client singleton
-└── index.js                  # App entry point
-
-prisma/
-├── schema.prisma   # Database schema
-└── seed.js         # Initial data (operators + interaction types)
+wiber-metrics/
+├── backend/          # API REST (Node.js + Express + Prisma + Supabase)
+│   ├── src/
+│   ├── prisma/
+│   ├── package.json
+│   └── .env
+├── frontend/         # Dashboard (React + TailwindCSS + Recharts)
+│   ├── src/
+│   ├── public/
+│   ├── package.json
+│   └── vite.config.js
+└── README.md
 ```
 
-## Setup
+## 🚀 Quick Start
 
-### 1. Clone and install
+### Backend Setup
+
 ```bash
-git clone https://github.com/StatusWiber/metricas_soporte.git
-cd metricas_soporte
+cd backend
 npm install
-```
 
-### 2. Configure environment
-```bash
+# Llenar .env con datos de Supabase
 cp .env.example .env
-```
-Fill in your Supabase `DATABASE_URL` and API keys.
 
-### 3. Initialize database
-```bash
-npm run prisma:generate        # Generate Prisma client
-npx prisma migrate dev --name initial   # Create tables in Supabase
-npm run prisma:seed            # Load operators and interaction types
-```
+# Configurar la base de datos
+npm run prisma:migrate
+npm run prisma:seed
 
-### 4. Run development server
-```bash
+# Correr en desarrollo
 npm run dev
-# Server running on http://localhost:3000
 ```
 
-## API Endpoints
+Backend escucha en **http://localhost:3000**
 
-### Health
-| Method | Path | Description |
+### Frontend Setup
+
+```bash
+cd frontend
+npm install
+
+# Correr en desarrollo
+npm run dev
+```
+
+Frontend escucha en **http://localhost:5173** y proxea `/api` a `http://localhost:3000`
+
+## 📊 Características
+
+### Dashboard Principal (`/`)
+- 📈 Métricas de equipo en tiempo real
+- 📊 Gráficos: desvíos, distribución de interacciones
+- 👥 Tarjetas de operadores con estado de capacidad
+- ⚠️ Tabla de desvíos del día
+- 🔴 Panel de alertas activas
+- Auto-refresh cada 30 segundos
+
+### Detalle de Operador (`/operador/:operador_id`)
+- Estado de capacidad (NORMAL / SATURADO / LIBRE)
+- Historial de desvíos del día
+- Interacciones recientes
+- MTTR real vs esperado
+
+### Centro de Alertas (`/alertas`)
+- Lista filtrable de alertas
+- Estadísticas de desvíos
+- Filtros por operador y estado
+- Ordenamiento por fecha
+
+## 🔌 API Endpoints
+
+| Método | Path | Descripción |
 |--------|------|-------------|
-| GET | `/api/health` | Server status |
+| GET | `/api/health` | Health check |
+| GET | `/api/gestiones` | Listar interacciones |
+| GET | `/api/gestiones/metricas/equipo` | Métricas del equipo |
+| GET | `/api/gestiones/operador/:id` | Interacciones por operador |
+| GET | `/api/gestiones/capacidad/:id` | Capacidad del operador |
+| GET | `/api/desvios` | Listar desvíos |
+| GET | `/api/desvios/operador/:id` | Desvíos por operador |
+| POST | `/api/webhooks/typeform` | Recibir datos de Typeform |
 
-### Gestiones (Interactions)
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/gestiones` | List all (filters: operador_id, fecha_desde, fecha_hasta) |
-| GET | `/api/gestiones/:id` | Single interaction with deviation |
-| GET | `/api/gestiones/operador/:id` | Operator's interactions (filter: fecha) |
-| GET | `/api/gestiones/capacidad/:id` | Operator capacity status |
-| GET | `/api/gestiones/metricas/equipo` | Full team metrics (filter: fecha) |
+## 🛠️ Tecnologías
 
-### Desvíos (Deviations)
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/desvios` | List deviations (filters: operador_id, fecha_desde, fecha_hasta, alerta_solo) |
-| GET | `/api/desvios/operador/:id` | Operator deviations (filters: fecha, tipo_interaccion_id) |
+### Backend
+- **Node.js 18+** - Runtime
+- **Express.js** - Framework web
+- **Prisma** - ORM
+- **PostgreSQL** (Supabase) - Base de datos
+- **Axios** - HTTP client
 
-### Webhooks
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/api/webhooks/typeform` | Receive Typeform form submission |
+### Frontend
+- **React 18** - UI Framework
+- **TailwindCSS** - Styling
+- **Recharts** - Gráficos
+- **Lucide React** - Iconos
+- **Vite** - Build tool
+- **React Router** - Navegación
 
-## Typeform Webhook Setup
+## 📋 Variables de Entorno
 
-1. In Typeform, go to your form → **Connect → Webhooks**
-2. Add webhook URL: `https://your-domain.vercel.app/api/webhooks/typeform`
-3. Expected answer order in form:
-   - Answer 1 (short_text): Operator name (e.g. `CRISTIAN`)
-   - Answer 2 (short_text): Interaction type (e.g. `SIN INTERNET`)
-   - Answer 3 (date): Date
-   - Answer 4 (number): Duration in seconds
+### Backend (.env)
+```
+DATABASE_URL=postgresql://...
+TYPEFORM_API_TOKEN=xxxxx
+SURICATA_API_KEY=xxxxx
+SURICATA_API_URL=https://...
+ANATOD_API_KEY=xxxxx
+ANATOD_API_URL=https://...
+PORT=3000
+NODE_ENV=development
+```
 
-## Interaction Types (Reference MTTR)
-| Type | Expected Average |
-|------|-----------------|
-| CONSULTAS ADICIONALES | 3.73 min |
-| TV | 4.35 min |
-| SIN INTERNET | 3.83 min |
-| INTERMITENCIAS / LENTITUD | 5.22 min |
-| DERIVACIÓN DE CHAT | 0.67 min |
+## 🔄 Flujo de Datos
 
-## Deviation Logic
-- `desvio% = (real - expected) / expected * 100`
-- `|desvio%| ≤ 20%` → **NORMAL**
-- `desvio% > +20%` → **LENTO** (alert generated)
-- `desvio% < -20%` → **RAPIDO** (alert generated)
+```
+Typeform (cronómetro)
+    ↓
+POST /api/webhooks/typeform
+    ↓
+Backend crea Gestion + calcula Desvio + genera Alerta
+    ↓
+Frontend consulta /api/metricas/equipo cada 30s
+    ↓
+Dashboard se actualiza en tiempo real
+```
 
-## Capacity Status
-- `avg_desvio% < -15%` → **CAPACIDAD LIBRE** (operator is faster than usual)
-- `avg_desvio% > +15%` → **SATURADO** (operator is slower than usual)
-- `-15% ≤ avg_desvio% ≤ +15%` → **NORMAL**
+## 📊 Cálculo de Desvíos
 
-## Roadmap
-- **Phase 1 (current):** Typeform integration, deviation calculation, alerts
-- **Phase 2:** Suricata + Anatod integration, Sentry logging
-- **Phase 3:** Dashboard UI, authentication, reports
+```
+desvio% = (duracion_real - promedio_esperado) / promedio_esperado * 100
+
+Estados:
+- |desvio%| ≤ 20%  → NORMAL (verde)
+- desvio% > +20%   → LENTO (rojo)
+- desvio% < -20%   → RÁPIDO (azul)
+```
+
+## 📈 Estado de Capacidad
+
+```
+Promedio diario de desvios por operador:
+
+< -15%   → CAPACIDAD LIBRE (puede aceptar más trabajo)
+-15 a +15% → NORMAL
+> +15%   → SATURADO (necesita apoyo)
+```
+
+## 🎨 Paleta de Colores
+
+- **Primary Cyan**: `#06b6d4` - Acciones principales
+- **Secondary Teal**: `#0d9488` - Secundarias
+- **Success Emerald**: `#10b981` - Estados OK
+- **Warning Amber**: `#f59e0b` - Precaución
+- **Danger Red**: `#ef4444` - Alertas críticas
+- **Info Blue**: `#3b82f6` - Información
+- **Background**: `#111827` - Fondo oscuro
+
+## 📱 Responsive Design
+
+- ✅ Desktop (1920px+)
+- ✅ Tablet (768px-1920px)
+- ✅ Mobile (320px-768px) - Básico
+
+## 🔐 Seguridad
+
+- No hay autenticación en la Fase 1
+- Próxima fase: JWT + OAuth
+- Validación básica en backend
+- CORS habilitado
+
+## 🚢 Deploy
+
+### Vercel (Frontend)
+1. Push a GitHub
+2. Conectar repo en Vercel
+3. Configurar variable `VITE_API_URL` si es necesario
+
+### Railway/Render (Backend)
+1. Conectar repo
+2. Configurar `DATABASE_URL`
+3. Ejecutar `npm run prisma:migrate`
+
+## 📚 Documentación
+
+- [Backend README](./backend/README.md)
+- [Frontend README](./frontend/README.md)
+
+## 🗓️ Roadmap
+
+- ✅ **Fase 1**: Typeform + Desvíos + Dashboard
+- 🔄 **Fase 2**: Suricata + Anatod + Alertas Telegram
+- 📅 **Fase 3**: Reportes Excel + Looker Studio
+- 🔐 **Fase 4**: Autenticación + Usuarios
+
+## 👥 Equipo
+
+- **Supervisor**: Fede
+- **Operadores**: CRISTIAN, ROCIO, NICOLÁS, GUSTAVO
+
+## 📝 Licencia
+
+MIT
+
+## 📧 Contacto
+
+Wiber Team
